@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Quaerere.Tests", "Quaerere.Tests\Quaerere.Tests.fsproj", "{A8E1C5A0-896B-48B8-ACBF-E8DC311E387C}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Quaerere", "Quaerere\Quaerere.fsproj", "{B6F063A9-04A3-41CA-8C7B-F55FE33FEF7E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{5660D901-756B-4F55-8CE5-FEE118274665}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A8E1C5A0-896B-48B8-ACBF-E8DC311E387C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8E1C5A0-896B-48B8-ACBF-E8DC311E387C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A8E1C5A0-896B-48B8-ACBF-E8DC311E387C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8E1C5A0-896B-48B8-ACBF-E8DC311E387C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B6F063A9-04A3-41CA-8C7B-F55FE33FEF7E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B6F063A9-04A3-41CA-8C7B-F55FE33FEF7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B6F063A9-04A3-41CA-8C7B-F55FE33FEF7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B6F063A9-04A3-41CA-8C7B-F55FE33FEF7E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
