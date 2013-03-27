@@ -7,6 +7,7 @@ open Ploeh.AutoFixture
 open Ploeh.AutoFixture.Xunit
 open Moq
 open Quaerere
+open System
 
 module IndexerTests =
 
