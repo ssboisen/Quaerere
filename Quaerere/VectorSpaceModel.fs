@@ -21,7 +21,7 @@ let createWeightVectors docs keySelector docIdSelector =
     let localTermFrequencies = docsWithKeys |> Seq.collect (fun (d, keys) ->
                                                         keys |> Seq.countBy id
                                                              |> Seq.map (fun (key, count) -> (key, (d, float count))))
-                                            |> Seq.groupBy (fun (key, _) -> key)
+                                            |> Seq.groupBy fst
                                             |> Seq.map (fun (key, seq) -> (key, seq |> Seq.map (fun (_, (doc, count)) -> (doc, count)) |> Map.ofSeq))
                                             |> Map.ofSeq
 
@@ -44,4 +44,4 @@ let createWeightVectors docs keySelector docIdSelector =
                             (docId, weightVector))
              |> List.ofSeq
 
-    (distinctTerms |> List.ofSeq, weightVectors)
+    (List.ofSeq distinctTerms, weightVectors)
