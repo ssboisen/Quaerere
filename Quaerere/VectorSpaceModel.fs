@@ -22,7 +22,7 @@ let createWeightVectors docs keySelector docIdSelector =
                                                         keys |> Seq.countBy id
                                                              |> Seq.map (fun (key, count) -> (key, (d, float count))))
                                             |> Seq.groupBy fst
-                                            |> Seq.map (fun (key, seq) -> (key, seq |> Seq.map (fun (_, (doc, count)) -> (doc, count)) |> Map.ofSeq))
+                                            |> Seq.map (fun (key, seq) -> (key, seq |> Seq.map snd |> Map.ofSeq))
                                             |> Map.ofSeq
 
     let weightVectors =
