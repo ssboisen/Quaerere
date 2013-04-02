@@ -26,13 +26,12 @@ let calculateDocumentWeightVectors docIndex indexMetaData =
     let localTermFrequencies = docIndex |> Seq.collect (fun (d, keys) ->
                                                         keys |> Seq.countBy id
                                                              |> Seq.map (fun (key, count) -> (key, (d, float count))))
-                                            |> Seq.groupBy fst
-                                            |> Seq.map (fun (key, seq) -> (key, seq |> Seq.map snd |> Map.ofSeq))
-                                            |> Map.ofSeq
+                                        |> Seq.groupBy fst
+                                        |> Seq.map (fun (key, seq) -> (key, seq |> Seq.map snd |> Map.ofSeq))
+                                        |> Map.ofSeq
 
     docIndex
-        |> Seq.map fst
-        |> Seq.map (fun docId ->
+        |> Seq.map (fun (docId, _) ->
                         let weightVector = distinctTerms
                                             |> Seq.map (fun term ->
                                                             let localTermFreq = localTermFrequencies
@@ -50,12 +49,10 @@ let calculateDocumentWeightVectors docIndex indexMetaData =
 
 let generateQueryWeightVector queryTerms documentTerms =
     let querySet = queryTerms |> Set.ofSeq
-    documentTerms |> Seq.map (fun term -> 
-                                querySet
-                                |> Set.contains term 
-                                |> function
-                                    | true -> 1.0
-                                    | false -> 0.0)
+    seq { 
+        for term in documentTerms ->
+        if querySet.Contains term then 1.0 else 0.0
+    }
 
 let calculateSimilarity queryWeightVector docWeightVector =
     let nominator = docWeightVector
