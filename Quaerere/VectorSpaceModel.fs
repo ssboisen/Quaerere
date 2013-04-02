@@ -1,5 +1,6 @@
 ﻿module VectorSpaceModel
-open System
+
+let square x = x * x
 
 let extractWords (s : string) =
     s.Split([|' '|], System.StringSplitOptions.RemoveEmptyEntries)
@@ -41,7 +42,7 @@ let calculateDocumentWeightVectors docIndex indexMetaData =
                                                                                         | Some(freq) -> freq
                                                                                         | None -> 0.0
                                                             let globalTermFreq = globalTermFrequencies |> Map.find term
-                                                            let inverseDocFreq = Math.Log(numberOfDocs / globalTermFreq)
+                                                            let inverseDocFreq = log (numberOfDocs / globalTermFreq)
                                                             localTermFreq * inverseDocFreq)
                                             |> List.ofSeq
                         (docId, weightVector))
@@ -59,10 +60,12 @@ let calculateSimilarity queryWeightVector docWeightVector =
                         |> Seq.zip queryWeightVector
                         |> Seq.sumBy (fun (d, q) -> d * q)
     let denominator =
-                Math.Sqrt( docWeightVector
-                                |> Seq.sumBy (fun d -> d * d) ) *
-                Math.Sqrt( queryWeightVector
-                                |> Seq.sumBy (fun q -> q * q) )
+                (docWeightVector
+                    |> Seq.sumBy square
+                    |> sqrt) *
+                (queryWeightVector
+                    |> Seq.sumBy square
+                    |> sqrt)
     nominator / denominator
 
 //Example
