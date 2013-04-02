@@ -68,8 +68,8 @@ let calculateSimilarity queryWeightVector docWeightVector =
 //Example
 let docIndex = indexDocs [| "hello world"; "yo mama"; "hello other world"; "hello simon" |] id id
 let metaData = indexMetaData docIndex
-let query = "hello mama"
-let queryTerms = extractWords query
+let query = "mama hello"
+let queryTerms = extractWords query |> Seq.sort
 
 let docWeightVectors = calculateDocumentWeightVectors docIndex metaData
 
