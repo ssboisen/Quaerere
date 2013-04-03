@@ -3,11 +3,19 @@
 let square x = x * x
 
 let extractWords (s : string) =
+    let s = System.Text.RegularExpressions.Regex.Replace(s, @"<[^>]*>", System.String.Empty)
     s.Split([|' '|], System.StringSplitOptions.RemoveEmptyEntries)
+    |> Seq.filter (fun w -> System.Text.RegularExpressions.Regex.IsMatch(w, @"^\p{L}+$"))
+    |> Seq.map (fun s -> 
+                    s.Trim().ToLower())
+    |> List.ofSeq
 
 let extractAllTerms docs contentSelector docIdSelector =
     let findTerms doc = contentSelector doc |> extractWords
-    docs |> Seq.map (fun d -> (docIdSelector d, findTerms d))
+    docs 
+        |> Seq.map (fun d -> (docIdSelector d, findTerms d))
+        |> Seq.filter (fun (_, terms) -> terms |> List.length > 0)
+        |> List.ofSeq
 
 let extractTermInfo docsWithTerms =
     let numberOfDocs = docsWithTerms |> Seq.length |> float
@@ -51,28 +59,12 @@ let generateQueryWeightVector queryTerms documentTerms =
     }
 
 let calculateSimilarity queryWeightVector docWeightVector =
-    let rss xs = xs |> Seq.sumBy square |> sqrt
+    let rss (xs : seq<float>) = xs |> Seq.sumBy square |> sqrt
     let dotProduct = docWeightVector
                         |> Seq.zip queryWeightVector
                         |> Seq.sumBy (fun (d, q) -> d * q)
     let norms = rss docWeightVector * rss queryWeightVector
-    dotProduct / norms
-
-//Example
-let docsWithTerms = extractAllTerms [| "hello world"; "yo mama"; "hello other world"; "hello simon" |] id id
-let termInfo = extractTermInfo docsWithTerms
-let query = "mama hello"
-let queryTerms = extractWords query
-
-let docWeightVectors = calculateDocumentWeightVectors docsWithTerms termInfo
-
-let _, _, distinctTerms = termInfo
-
-let queryVector = generateQueryWeightVector queryTerms distinctTerms
-
-let querySimilarity = calculateSimilarity queryVector
-
-let topDocs = docWeightVectors
-                |> Seq.map (fun (d, wv) -> d, querySimilarity wv)
-                |> Seq.sortBy (fun (d, s) -> -s - 1.0)
-                |> List.ofSeq
+    if norms > 0.0 then
+        dotProduct / norms
+    else
+        0.0
