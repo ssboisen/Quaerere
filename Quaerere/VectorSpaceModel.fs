@@ -4,44 +4,39 @@ let square x = x * x
 
 let extractWords (s : string) =
     s.Split([|' '|], System.StringSplitOptions.RemoveEmptyEntries)
-        |> Seq.map (fun s ->
-                        let filteredChars = Seq.filter (fun c -> System.Char.IsLetterOrDigit c) s |> Seq.toArray
-                        new string(filteredChars))
 
-let indexDocs docs keySelector docIdSelector =
-    let findKeys doc =
-        keySelector doc |> extractWords
-    docs |> Seq.map (fun d -> (docIdSelector d, findKeys d))
+let extractAllTerms docs contentSelector docIdSelector =
+    let findTerms doc = contentSelector doc |> extractWords
+    docs |> Seq.map (fun d -> (docIdSelector d, findTerms d))
 
-let indexMetaData docIndex =
-    let numberOfDocs = docIndex |> Seq.length |> float
-    let terms = docIndex |> Seq.collect snd |> Seq.sort |> List.ofSeq
+let extractTermInfo docsWithTerms =
+    let numberOfDocs = docsWithTerms |> Seq.length |> float
+    let terms = docsWithTerms |> Seq.collect snd |> Seq.sort |> List.ofSeq
     let distinctTerms = terms |> Seq.distinct |> List.ofSeq
 
     (numberOfDocs, terms, distinctTerms)
 
-let calculateDocumentWeightVectors docIndex indexMetaData =
-    let numberOfDocs, terms, distinctTerms = indexMetaData
+let calculateDocumentWeightVectors docsWithTerms termInfo =
+    let numberOfDocs, terms, distinctTerms = termInfo
     let globalTermFrequencies = terms |> Seq.countBy id |> Seq.map (fun (t, c) -> (t, float c)) |> Map.ofSeq
 
-    let localTermFrequencies = docIndex |> Seq.collect (fun (d, keys) ->
+    let localTermFrequencies = docsWithTerms |> Seq.collect (fun (d, keys) ->
                                                         keys |> Seq.countBy id
                                                              |> Seq.map (fun (key, count) -> (key, (d, float count))))
                                         |> Seq.groupBy fst
                                         |> Seq.map (fun (key, seq) -> (key, seq |> Seq.map snd |> Map.ofSeq))
                                         |> Map.ofSeq
 
-    docIndex
+    docsWithTerms
         |> Seq.map (fun (docId, _) ->
                         let weightVector = distinctTerms
                                             |> Seq.map (fun term ->
-                                                            let localTermFreq = localTermFrequencies
-                                                                                    |> Map.find term
+                                                            let localTermFreq = localTermFrequencies.Item term
                                                                                     |> Map.tryFind docId
                                                                                     |> function
                                                                                         | Some(freq) -> freq
                                                                                         | None -> 0.0
-                                                            let globalTermFreq = globalTermFrequencies |> Map.find term
+                                                            let globalTermFreq = globalTermFrequencies.Item term
                                                             let inverseDocFreq = log (numberOfDocs / globalTermFreq)
                                                             localTermFreq * inverseDocFreq)
                                             |> List.ofSeq
@@ -56,27 +51,22 @@ let generateQueryWeightVector queryTerms documentTerms =
     }
 
 let calculateSimilarity queryWeightVector docWeightVector =
-    let nominator = docWeightVector
+    let rss xs = xs |> Seq.sumBy square |> sqrt
+    let dotProduct = docWeightVector
                         |> Seq.zip queryWeightVector
                         |> Seq.sumBy (fun (d, q) -> d * q)
-    let denominator =
-                (docWeightVector
-                    |> Seq.sumBy square
-                    |> sqrt) *
-                (queryWeightVector
-                    |> Seq.sumBy square
-                    |> sqrt)
-    nominator / denominator
+    let norms = rss docWeightVector * rss queryWeightVector
+    dotProduct / norms
 
 //Example
-let docIndex = indexDocs [| "hello world"; "yo mama"; "hello other world"; "hello simon" |] id id
-let metaData = indexMetaData docIndex
+let docsWithTerms = extractAllTerms [| "hello world"; "yo mama"; "hello other world"; "hello simon" |] id id
+let termInfo = extractTermInfo docsWithTerms
 let query = "mama hello"
-let queryTerms = extractWords query |> Seq.sort
+let queryTerms = extractWords query
 
-let docWeightVectors = calculateDocumentWeightVectors docIndex metaData
+let docWeightVectors = calculateDocumentWeightVectors docsWithTerms termInfo
 
-let _, _, distinctTerms = metaData
+let _, _, distinctTerms = termInfo
 
 let queryVector = generateQueryWeightVector queryTerms distinctTerms
 
