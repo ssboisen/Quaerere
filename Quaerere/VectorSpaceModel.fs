@@ -47,18 +47,18 @@ let calculateDocumentWeightVectors docsWithTerms localTermFrequencies inverseDoc
                                                         let localTermFreq = localTermFrequencies
                                                                                 |> Map.find term
                                                                                 |> Map.find docId
-                                                        let inverseDocFreq : float = inverseDocFreq term
-                                                        let freq = localTermFreq * inverseDocFreq
+                                                        let inverseDocFreq = inverseDocFreq term
+                                                        let freq : float = localTermFreq * inverseDocFreq
                                                         (term, freq))
+                                        |> Map.ofSeq
                         (docId, weights))
        |> List.ofSeq
 
 let generateQueryWeights queryTerms inverseDocFreq =
     queryTerms |> Seq.map (fun term -> (term, inverseDocFreq term))
 
-let calculateSimilarity queryWeights docWeights =
+let calculateSimilarity queryWeights docWeightMap =
     let rss (xs : seq<float>) = xs |> Seq.sumBy square |> sqrt
-    let docWeightMap = docWeights |> Map.ofSeq
     let dotProduct = queryWeights
                         |> Seq.map (fun (term, qFreq) -> docWeightMap 
                                                             |> Map.tryFind term 
@@ -67,7 +67,7 @@ let calculateSimilarity queryWeights docWeights =
                                                                 | None -> (0.0, qFreq))
                         |> Seq.sumBy (fun (d, q) -> d * q)
 
-    let norms = rss (Seq.map snd queryWeights) * rss (Seq.map snd docWeights)
+    let norms = rss (Seq.map snd queryWeights) * rss (docWeightMap |> Seq.map (fun kvp -> kvp.Value))
     if norms > 0.0 then
         dotProduct / norms
     else

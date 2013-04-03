@@ -36,7 +36,7 @@ let queryWeights = generateQueryWeights queryTerms inverseDocFreq
 let querySimilarity = calculateSimilarity queryWeights
 sw.Restart()
 let topDocs = docWeightVectors
-                |> Seq.map (fun (d, wv) -> d, querySimilarity wv)
+                |> Seq.map (fun (d, docWeights) -> d, querySimilarity docWeights)
                 |> Seq.filter (fun (_, s) -> s > 0.0)
                 |> Seq.sortBy (fun (_, s) -> -s - 1.0)
                 |> List.ofSeq
