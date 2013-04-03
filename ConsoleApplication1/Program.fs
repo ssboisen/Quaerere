@@ -11,7 +11,6 @@ let db = dbSchema.GetDataContext()
 let lls = query {
     for ll in db.LocalizedLabels do
     where (ll.LocaleName.Equals("da-DK"))
-    take 10000
     select (ll.LabelId, ll.LabelText)
 }
 
@@ -20,7 +19,7 @@ let docs = lls |> Seq.toList
 //Example
 let docsWithTerms = extractAllTerms docs snd fst
 let numberOfDocs, terms, distinctTerms = extractTermInfo docsWithTerms
-let query = "glemmer fordybet"
+let query = "certificeret"
 let queryTerms = extractWords query
 
 let localeTermFrequencies = calculateLocaleTermFrequencies docsWithTerms
@@ -44,5 +43,8 @@ let elapsedSearch = sw.ElapsedMilliseconds
 
 [<EntryPoint>]
 let main argv = 
-    printfn "%A" argv
+    let searchResult = topDocs |> Seq.map (fun (docId, freq) -> (docs |> Seq.find (fun d -> (fst d).Equals(docId)), freq) )
+    printfn "%A" searchResult
+    printfn "%A" elapsedBuild
+    printfn "%A" elapsedSearch
     0 // return an integer exit code

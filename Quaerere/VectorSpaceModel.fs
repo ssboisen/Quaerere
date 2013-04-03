@@ -3,11 +3,8 @@
 let square x = x * x
 
 let extractWords (s : string) =
-    let s = System.Text.RegularExpressions.Regex.Replace(s, @"<[^>]*>", System.String.Empty)
     s.Split([|' '|], System.StringSplitOptions.RemoveEmptyEntries)
-    |> Seq.filter (fun w -> System.Text.RegularExpressions.Regex.IsMatch(w, @"^\p{L}+$"))
-    |> Seq.map (fun s -> 
-                    s.Trim().ToLower())
+    |> Seq.map (fun s -> s.Trim().ToLower())
     |> List.ofSeq
 
 let extractAllTerms docs contentSelector docIdSelector =
