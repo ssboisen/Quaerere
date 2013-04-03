@@ -35,19 +35,26 @@ let calculateDocumentWeightVectors docsWithTerms termInfo =
                                         |> Seq.map (fun (key, seq) -> (key, seq |> Seq.map snd |> Map.ofSeq))
                                         |> Map.ofSeq
 
+    let termIndexes = distinctTerms |> Seq.mapi (fun i term -> (term, i)) |> Map.ofSeq
+
+    let numOfDistinctTerms = distinctTerms |> Seq.length
+
     docsWithTerms
-        |> Seq.map (fun (docId, _) ->
-                        let weightVector = distinctTerms
-                                            |> Seq.map (fun term ->
-                                                            let localTermFreq = localTermFrequencies.Item term
-                                                                                    |> Map.tryFind docId
-                                                                                    |> function
-                                                                                        | Some(freq) -> freq
-                                                                                        | None -> 0.0
-                                                            let globalTermFreq = globalTermFrequencies.Item term
-                                                            let inverseDocFreq = log (numberOfDocs / globalTermFreq)
-                                                            localTermFreq * inverseDocFreq)
-                                            |> List.ofSeq
+        |> Seq.map (fun (docId, terms) ->
+                        let weightVector = Array.create numOfDistinctTerms 0.0
+                        terms
+                            |> Seq.map (fun term ->
+                                            let freq = localTermFrequencies.Item term
+                                                        |> Map.tryFind docId
+                                                        |> function
+                                                            | Some(localTermFreq) -> 
+                                                                let globalTermFreq = globalTermFrequencies.Item term
+                                                                let inverseDocFreq = log (numberOfDocs / globalTermFreq)
+                                                                localTermFreq * inverseDocFreq
+                                                            | None -> 0.0
+                                            (term, freq))
+                                            
+                            |> Seq.iter (fun (term, freq) -> weightVector.[termIndexes.Item term] <- freq)
                         (docId, weightVector))
        |> List.ofSeq
 
