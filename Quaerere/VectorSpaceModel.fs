@@ -24,53 +24,50 @@ let extractTermInfo docsWithTerms =
 
     (numberOfDocs, terms, distinctTerms)
 
-let calculateDocumentWeightVectors docsWithTerms termInfo =
-    let numberOfDocs, terms, distinctTerms = termInfo
-    let globalTermFrequencies = terms |> Seq.countBy id |> Seq.map (fun (t, c) -> (t, float c)) |> Map.ofSeq
+let calculateLocaleTermFrequencies docsWithTerms =
+    docsWithTerms   |> Seq.collect (fun (d, keys) ->
+                                    keys |> Seq.countBy id
+                                         |> Seq.map (fun (key, count) -> (key, (d, float count))))
+                    |> Seq.groupBy fst
+                    |> Seq.map (fun (key, seq) -> (key, seq |> Seq.map snd |> Map.ofSeq))
+                    |> Map.ofSeq
 
-    let localTermFrequencies = docsWithTerms |> Seq.collect (fun (d, keys) ->
-                                                        keys |> Seq.countBy id
-                                                             |> Seq.map (fun (key, count) -> (key, (d, float count))))
-                                        |> Seq.groupBy fst
-                                        |> Seq.map (fun (key, seq) -> (key, seq |> Seq.map snd |> Map.ofSeq))
-                                        |> Map.ofSeq
+let calculateGlobalTermFrequencies terms = 
+    terms |> Seq.countBy id |> Seq.map (fun (t, c) -> (t, float c)) |> Map.ofSeq
 
-    let termIndexes = distinctTerms |> Seq.mapi (fun i term -> (term, i)) |> Map.ofSeq
+let calculateInverseDocFrequency globalTermFrequencies numberOfDocs term =
+    let globalTermFreq = Map.find term globalTermFrequencies
+    log (numberOfDocs / globalTermFreq)
 
-    let numOfDistinctTerms = distinctTerms |> Seq.length
-
+let calculateDocumentWeightVectors docsWithTerms localTermFrequencies inverseDocFreq =
     docsWithTerms
         |> Seq.map (fun (docId, terms) ->
-                        let weightVector = Array.create numOfDistinctTerms 0.0
-                        terms
-                            |> Seq.map (fun term ->
-                                            let freq = localTermFrequencies.Item term
-                                                        |> Map.tryFind docId
-                                                        |> function
-                                                            | Some(localTermFreq) -> 
-                                                                let globalTermFreq = globalTermFrequencies.Item term
-                                                                let inverseDocFreq = log (numberOfDocs / globalTermFreq)
-                                                                localTermFreq * inverseDocFreq
-                                                            | None -> 0.0
-                                            (term, freq))
-                                            
-                            |> Seq.iter (fun (term, freq) -> weightVector.[termIndexes.Item term] <- freq)
-                        (docId, weightVector))
+                        let weights = terms
+                                        |> Seq.map (fun term ->
+                                                        let localTermFreq = localTermFrequencies
+                                                                                |> Map.find term
+                                                                                |> Map.find docId
+                                                        let inverseDocFreq : float = inverseDocFreq term
+                                                        let freq = localTermFreq * inverseDocFreq
+                                                        (term, freq))
+                        (docId, weights))
        |> List.ofSeq
 
-let generateQueryWeightVector queryTerms documentTerms =
-    let querySet = queryTerms |> Set.ofSeq
-    seq { 
-        for term in documentTerms ->
-        if querySet.Contains term then 1.0 else 0.0
-    }
+let generateQueryWeights queryTerms inverseDocFreq =
+    queryTerms |> Seq.map (fun term -> (term, inverseDocFreq term))
 
-let calculateSimilarity queryWeightVector docWeightVector =
+let calculateSimilarity queryWeights docWeights =
     let rss (xs : seq<float>) = xs |> Seq.sumBy square |> sqrt
-    let dotProduct = docWeightVector
-                        |> Seq.zip queryWeightVector
+    let docWeightMap = docWeights |> Map.ofSeq
+    let dotProduct = queryWeights
+                        |> Seq.map (fun (term, qFreq) -> docWeightMap 
+                                                            |> Map.tryFind term 
+                                                            |> function
+                                                                | Some(dFreq) -> (dFreq, qFreq)
+                                                                | None -> (0.0, qFreq))
                         |> Seq.sumBy (fun (d, q) -> d * q)
-    let norms = rss docWeightVector * rss queryWeightVector
+
+    let norms = rss (Seq.map snd queryWeights) * rss (Seq.map snd docWeights)
     if norms > 0.0 then
         dotProduct / norms
     else

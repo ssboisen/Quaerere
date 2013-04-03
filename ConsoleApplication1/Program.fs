@@ -11,7 +11,7 @@ let db = dbSchema.GetDataContext()
 let lls = query {
     for ll in db.LocalizedLabels do
     where (ll.LocaleName.Equals("da-DK"))
-    take 5000
+    take 10000
     select (ll.LabelId, ll.LabelText)
 }
 
@@ -19,25 +19,28 @@ let docs = lls |> Seq.toList
 
 //Example
 let docsWithTerms = extractAllTerms docs snd fst
-let termInfo = extractTermInfo docsWithTerms
+let numberOfDocs, terms, distinctTerms = extractTermInfo docsWithTerms
 let query = "glemmer fordybet"
 let queryTerms = extractWords query
 
+let localeTermFrequencies = calculateLocaleTermFrequencies docsWithTerms
+let globalTermFrequencies = calculateGlobalTermFrequencies terms
+let inverseDocFreq = calculateInverseDocFrequency globalTermFrequencies numberOfDocs
+
 let sw = System.Diagnostics.Stopwatch.StartNew()
-let docWeightVectors = calculateDocumentWeightVectors docsWithTerms termInfo
-let elapsed = sw.ElapsedMilliseconds
+let docWeightVectors = calculateDocumentWeightVectors docsWithTerms localeTermFrequencies inverseDocFreq
+let elapsedBuild = sw.ElapsedMilliseconds
 
-let _, _, distinctTerms = termInfo
+let queryWeights = generateQueryWeights queryTerms inverseDocFreq
 
-let queryVector = generateQueryWeightVector queryTerms distinctTerms
-
-let querySimilarity = calculateSimilarity queryVector
-
+let querySimilarity = calculateSimilarity queryWeights
+sw.Restart()
 let topDocs = docWeightVectors
                 |> Seq.map (fun (d, wv) -> d, querySimilarity wv)
                 |> Seq.filter (fun (_, s) -> s > 0.0)
                 |> Seq.sortBy (fun (_, s) -> -s - 1.0)
                 |> List.ofSeq
+let elapsedSearch = sw.ElapsedMilliseconds
 
 [<EntryPoint>]
 let main argv = 
