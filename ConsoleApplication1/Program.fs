@@ -5,7 +5,7 @@ open System.Data.Linq
 open Microsoft.FSharp.Data.TypeProviders
 open Microsoft.FSharp.Linq
 
-type dbSchema = SqlDataConnection<"Data Source=.\;Initial Catalog=PTMatch;Integrated Security=SSPI;">
+type dbSchema = SqlDataConnection<"Data Source=.\MSSQLSERVER2012;Initial Catalog=PTMatch;Integrated Security=SSPI;">
 let db = dbSchema.GetDataContext()
 
 let lls = query {
@@ -18,13 +18,12 @@ let docs = lls |> Seq.toList
 
 //Example
 let docsWithTerms = extractAllTerms docs snd fst
-let numberOfDocs, terms, distinctTerms = extractTermInfo docsWithTerms
-let query = "certificeret"
+let query = "analyser aftalt"
 let queryTerms = extractWords query
-
-let localeTermFrequencies = calculateLocaleTermFrequencies docsWithTerms
-let globalTermFrequencies = calculateGlobalTermFrequencies terms
-let inverseDocFreq = calculateInverseDocFrequency globalTermFrequencies numberOfDocs
+let numberOfDocs = docs.Length |> float
+let localeTermFrequencies = calcTermFrequencies docsWithTerms
+let numOfDocsPerTerm = calcNumOfDocsPerTerm docsWithTerms
+let inverseDocFreq = calculateInverseDocFrequency numOfDocsPerTerm numberOfDocs
 
 let sw = System.Diagnostics.Stopwatch.StartNew()
 let docWeightVectors = calculateDocumentWeightVectors docsWithTerms localeTermFrequencies inverseDocFreq
@@ -39,6 +38,8 @@ let topDocs = docWeightVectors
                 |> Seq.filter (fun (_, s) -> s > 0.0)
                 |> Seq.sortBy (fun (_, s) -> -s - 1.0)
                 |> List.ofSeq
+
+let thedoc = topDocs |> Seq.filter (fun (d, _) -> d.Equals(5699))
 let elapsedSearch = sw.ElapsedMilliseconds
 
 [<EntryPoint>]

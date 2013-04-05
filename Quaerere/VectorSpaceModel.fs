@@ -3,7 +3,9 @@
 let square x = x * x
 
 let extractWords (s : string) =
+    let s = System.Text.RegularExpressions.Regex.Replace(s, @"<[^>]*>", System.String.Empty)
     s.Split([|' '|], System.StringSplitOptions.RemoveEmptyEntries)
+    |> Seq.filter (fun w -> System.Text.RegularExpressions.Regex.IsMatch(w, @"^\p{L}+$"))
     |> Seq.map (fun s -> s.Trim().ToLower())
     |> List.ofSeq
 
@@ -14,14 +16,7 @@ let extractAllTerms docs contentSelector docIdSelector =
         |> Seq.filter (fun (_, terms) -> terms |> List.length > 0)
         |> List.ofSeq
 
-let extractTermInfo docsWithTerms =
-    let numberOfDocs = docsWithTerms |> Seq.length |> float
-    let terms = docsWithTerms |> Seq.collect snd |> Seq.sort |> List.ofSeq
-    let distinctTerms = terms |> Seq.distinct |> List.ofSeq
-
-    (numberOfDocs, terms, distinctTerms)
-
-let calculateLocaleTermFrequencies docsWithTerms =
+let calcTermFrequencies docsWithTerms =
     docsWithTerms   |> Seq.collect (fun (d, keys) ->
                                     keys |> Seq.countBy id
                                          |> Seq.map (fun (key, count) -> (key, (d, float count))))
@@ -29,11 +24,15 @@ let calculateLocaleTermFrequencies docsWithTerms =
                     |> Seq.map (fun (key, seq) -> (key, seq |> Seq.map snd |> Map.ofSeq))
                     |> Map.ofSeq
 
-let calculateGlobalTermFrequencies terms = 
-    terms |> Seq.countBy id |> Seq.map (fun (t, c) -> (t, float c)) |> Map.ofSeq
+let calcNumOfDocsPerTerm docsWithTerms = 
+    docsWithTerms 
+        |> Seq.collect (fun (docId, terms) -> terms |> Seq.distinct)
+        |> Seq.countBy id 
+        |> Seq.map (fun (t, c) -> (t, float c)) 
+        |> Map.ofSeq
 
-let calculateInverseDocFrequency globalTermFrequencies numberOfDocs term =
-    let globalTermFreq = Map.find term globalTermFrequencies
+let calculateInverseDocFrequency numOfDocsPerTerm numberOfDocs term =
+    let globalTermFreq = Map.find term numOfDocsPerTerm
     log (numberOfDocs / globalTermFreq)
 
 let calculateDocumentWeightVectors docsWithTerms localTermFrequencies inverseDocFreq =
